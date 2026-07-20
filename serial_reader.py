@@ -1,6 +1,11 @@
 # ==================== serial_reader.py ====================
 # Runs serial reading on its own background thread so a slow or
 # dropped connection never freezes the radar animation.
+#
+# NOTE: speed is no longer parsed from the Arduino. The Arduino now only
+# streams "angle,distance" -- speed is computed downstream in tracker.py,
+# per matched object, instead of per fixed angle slot. See tracker.py
+# for why that's a better fit for objects that move across the beam.
 
 import serial
 import threading
@@ -12,12 +17,11 @@ import config
 
 class Reading:
     """One parsed line of data from the Arduino."""
-    __slots__ = ("angle", "distance", "speed", "timestamp")
+    __slots__ = ("angle", "distance", "timestamp")
 
-    def __init__(self, angle, distance, speed):
+    def __init__(self, angle, distance):
         self.angle = angle
         self.distance = distance      # -1 means out of range
-        self.speed = speed
         self.timestamp = time.time()
 
 
@@ -31,9 +35,6 @@ class SerialReader:
         self._lock = threading.Lock()
         self._latest = None
         self._new_readings = deque()   # readings since last UI poll
-
-        # per-angle raw distance history, used for speed smoothing
-        self._speed_history = {}
 
         self._running = True
         self._thread = threading.Thread(target=self._run, daemon=True)
@@ -73,7 +74,6 @@ class SerialReader:
                 if self.ser is None:
                     time.sleep(config.RECONNECT_DELAY)
                     continue
-
             try:
                 raw = self.ser.readline()
                 if not raw:
@@ -106,21 +106,11 @@ class SerialReader:
 
     def _parse(self, line):
         parts = line.split(',')
-        if len(parts) != 3:
+        if len(parts) != 2:
             return None
         try:
             angle = int(parts[0])
             distance = int(parts[1])
-            raw_speed = float(parts[2])
         except ValueError:
             return None
-
-        smoothed_speed = self._smooth_speed(angle, raw_speed)
-        return Reading(angle, distance, smoothed_speed)
-
-    def _smooth_speed(self, angle, raw_speed):
-        """Moving average of speed per-angle-bucket to reduce ultrasonic jitter."""
-        bucket = angle  # could round to nearest 2 deg if sweep step differs
-        hist = self._speed_history.setdefault(bucket, deque(maxlen=config.SPEED_SMOOTHING_SAMPLES))
-        hist.append(raw_speed)
-        return sum(hist) / len(hist)
+        return Reading(angle, distance)

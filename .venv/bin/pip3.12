@@ -1,4 +1,4 @@
-#!/home/collins/code/proj3/.venv/bin/python
+#!/home/collins/code/proj3/.venv/bin/python3.12
 # -*- coding: utf-8 -*-
 import re
 import sys

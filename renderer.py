@@ -137,7 +137,7 @@ class Renderer:
 
     # ---------------- HUD ----------------
 
-    def draw_hud(self, current_angle, current_distance, current_speed, connected, closest, fps, paused):
+    def draw_hud(self, current_angle, current_distance, current_speed, connected, closest, fps, paused, tracked_count=0):
         panel_y = self.height - config.HUD_HEIGHT
         pygame.draw.rect(self.screen, config.COLOR_HUD_BG, (0, panel_y, self.width, config.HUD_HEIGHT))
         pygame.draw.line(self.screen, config.COLOR_GRID_BRIGHT, (0, panel_y), (self.width, panel_y), 2)
@@ -171,6 +171,11 @@ class Renderer:
             closest_str = "Nearest contact: none"
         closest_text = self.font_hud_small.render(closest_str, True, config.COLOR_TEXT_DIM)
         self.screen.blit(closest_text, (20, panel_y + 72))
+
+        # live count of currently tracked objects
+        count_str = f"Tracked objects: {tracked_count}"
+        count_text = self.font_hud_small.render(count_str, True, config.COLOR_TEXT)
+        self.screen.blit(count_text, (480, panel_y + 72))
 
         # right-side status block
         conn_str = "● LIVE" if connected else "● NO SIGNAL"

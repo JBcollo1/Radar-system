@@ -1,5 +1,3 @@
-
-
 import time
 import pygame
 
@@ -48,8 +46,11 @@ def main():
             for r in new_readings:
                 current_angle = r.angle
                 current_distance = r.distance
-                current_speed = r.speed
-                tracker.ingest(r.angle, r.distance, r.speed)
+                # speed is no longer parsed from the Arduino -- ingest()
+                # returns the matched/created TrackedObject, which now
+                # computes its own speed internally (see tracker.py).
+                obj = tracker.ingest(r.angle, r.distance)
+                current_speed = obj.speed if obj else 0.0
 
         renderer.clear()
         renderer.draw_grid()
@@ -62,7 +63,8 @@ def main():
         renderer.draw_hud(
             current_angle, current_distance, current_speed,
             reader.is_connected(), tracker.closest_object(),
-            clock.get_fps(), paused
+            clock.get_fps(), paused,
+            tracked_count=tracker.active_count()
         )
 
         pygame.display.flip()
